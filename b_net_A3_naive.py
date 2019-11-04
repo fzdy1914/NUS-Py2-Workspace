@@ -32,8 +32,8 @@ class Factor:
                 del entry[key]
                 for cmp_entry in new_table:
                     inside_found = True
-                    for varaible in entry.keys():
-                        if varaible != 'probability' and entry[varaible] != cmp_entry[varaible]:
+                    for variable in entry.keys():
+                        if variable != 'probability' and entry[variable] != cmp_entry[variable]:
                             inside_found = False
                             break
                     if inside_found:
@@ -50,6 +50,36 @@ class Factor:
             self.table = new_table
         else:
             print('Can not sum out the variable ' + key)
+
+    def normalize(self):
+        prob_sum = 0
+        for entry in self.table:
+            prob_sum += entry['probability']
+
+        for entry in self.table:
+            entry['probability'] /= prob_sum
+
+    @classmethod
+    def multiply(cls, factor1, factor2):
+        new_factor = Factor()
+        all_var = set(factor1.keys + factor2.keys)
+        common_var = set(factor2.keys) - (all_var - set(factor1.keys))
+        new_factor.keys = list(all_var)
+        for entry1 in factor1.table:
+            for entry2 in factor2.table:
+                should_add = True
+                for var in common_var:
+                    if entry1[var] != entry2[var]:
+                        should_add = False
+                        break
+                if should_add:
+                    probability = entry1['probability'] * entry2['probability']
+                    temp = dict()
+                    temp.update(entry1)
+                    temp.update(entry2)
+                    temp['probability'] = probability
+                    new_factor.table.append(temp)
+        return new_factor
 
 
 class BayesianNetwork(object):
@@ -68,9 +98,6 @@ class BayesianNetwork(object):
     def construct(self):
         for key in self.variables:
             self.all_variables.append(key)
-
-        for key, value in self.variables.items():
-            continue
 
         for key in self.conditional_probabilities:
             new_factor = Factor()
@@ -91,20 +118,13 @@ class BayesianNetwork(object):
             new_factor.keys.append(key)
             for value in self.prior_probabilities[key]:
                 # probability = element['probability']
-                new_dict = {}
+                new_dict = dict()
                 new_dict[key] = value
                 new_dict['probability'] = self.prior_probabilities[key][value]
 
                 new_factor.table.append(new_dict)
 
             self.factors.append(new_factor)
-
-        # for factor in self.factors:
-        factor = self.factors[0]
-        print(factor.table)
-        factor.sum_out('Alarm')
-        print(factor.table)
-        print(factor.keys)
 
     def infer(self):
         # TODO: Your code here to answer the queries given using the Bayesian
@@ -114,9 +134,46 @@ class BayesianNetwork(object):
         # self.answer = [{"index": 1, "answer": 0.01}, {"index": 2, "answer": 0.71}]
         # the format of the answer returned SHOULD be as shown above.
 
+        for query in self.queries:
+            index = query['index']
+            given = query['given']
+            to_find = query['tofind']
 
-        # print (self.conditional_probabilities)
-        # print (self.prior_probabilities)
+            factors = copy.deepcopy(self.factors)
+
+            for key, value in given.items():
+                for factor in factors[:]:
+                    if key in factor.keys:
+                        factor.restrict(key, value)
+                        if len(factor.keys) == 0:
+                            factors.remove(factor)
+
+            result_factor = factors[0]
+
+            for i in range(len(factors) - 1):
+                result_factor = Factor.multiply(result_factor, factors[i + 1])
+
+            hidden = set(result_factor.keys)
+            for key in to_find:
+                hidden.remove(key)
+
+            for hidden_var in hidden:
+                result_factor.sum_out(hidden_var)
+
+            result_factor.normalize()
+            result = None
+
+            for entry in result_factor.table:
+                found = True
+                for key, value in to_find.items():
+                    if entry[key] != value:
+                        found = False
+                        break
+                if found:
+                    result = entry['probability']
+                    break
+
+            self.answer.append({'index': index, 'answer': result})
 
         return self.answer
 
@@ -150,6 +207,7 @@ def main():
     b_network = BayesianNetwork(structure, values, queries)
     b_network.construct()
     answers = b_network.infer()
+    print answers
 
 
 if __name__ == "__main__":
