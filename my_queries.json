@@ -1,0 +1,7 @@
+[
+    {
+        "index" : 4,
+        "given" : {},
+        "tofind" : {"Burglary": "False", "Earthquake": "False"}
+    }
+]

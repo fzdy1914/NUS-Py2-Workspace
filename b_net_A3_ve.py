@@ -138,32 +138,58 @@ class BayesianNetwork(object):
             index = query['index']
             given = query['given']
             to_find = query['tofind']
+            hidden = self.all_variables[:]
+            for key in to_find:
+                hidden.remove(key)
+            for key in given:
+                hidden.remove(key)
 
             factors = copy.deepcopy(self.factors)
 
+            # restrict the given variable
             for key, value in given.items():
                 for factor in factors[:]:
                     if key in factor.keys:
                         factor.restrict(key, value)
                         if len(factor.keys) == 0:
                             factors.remove(factor)
+            while len(hidden) > 0:
+                # find the variable to eliminate
+                next_var = hidden[0]
+                min_degree = BayesianNetwork.degree(next_var, factors)
+                for hidden_var in hidden:
+                    new_degree = BayesianNetwork.degree(hidden_var, factors)
+                    if new_degree < min_degree:
+                        min_degree = new_degree
+                        next_var = hidden_var
+                hidden.remove(next_var)
 
-            result_factor = factors[0]
+                # find the related factors of next_var
+                related_factor = []
+                for factor in factors[:]:
+                    if next_var in factor.keys:
+                        related_factor.append(factor)
+                        factors.remove(factor)
 
+                if len(related_factor) > 0:
+                    result_factor = related_factor[0]
+
+                    for i in range(len(related_factor) - 1):
+                        result_factor = Factor.multiply(result_factor, related_factor[i + 1])
+
+                    result_factor.sum_out(next_var)
+                    if len(result_factor.keys) > 0:
+                        # append back if it is valid
+                        factors.append(result_factor)
+
+            final_result_factor = factors[0]
             for i in range(len(factors) - 1):
-                result_factor = Factor.multiply(result_factor, factors[i + 1])
+                final_result_factor = Factor.multiply(final_result_factor, factors[i + 1])
 
-            hidden = set(result_factor.keys)
-            for key in to_find:
-                hidden.remove(key)
-
-            for hidden_var in hidden:
-                result_factor.sum_out(hidden_var)
-
-            result_factor.normalize()
+            final_result_factor.normalize()
             result = None
 
-            for entry in result_factor.table:
+            for entry in final_result_factor.table:
                 found = True
                 for key, value in to_find.items():
                     if entry[key] != value:
@@ -180,6 +206,17 @@ class BayesianNetwork(object):
     # You may add more classes/functions if you think is useful. However, ensure
     # all the classes/functions are in this file ONLY and used within the
     # BayesianNetwork class.
+
+    @classmethod
+    def degree(cls, variable, factor_list):
+        dependent_variable = []
+        for factor in factor_list:
+            if variable in factor.keys:
+                for key in factor.keys:
+                    if key != variable and key not in dependent_variable:
+                        dependent_variable.append(key)
+        return len(dependent_variable)
+
 
 
 def main():
