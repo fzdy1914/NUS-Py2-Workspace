@@ -1,5 +1,55 @@
+import copy
 import sys
 import json
+
+
+class Factor:
+    def __init__(self):
+        self.keys = []
+        self.table = []
+
+    def restrict(self, key, value):
+        if key in self.keys:
+            new_table = []
+
+            for entry in self.table:
+                if entry[key] == value:
+                    del entry[key]
+                    new_table.append(entry)
+
+            self.keys.remove(key)
+            self.table = new_table
+        else:
+            print('Can not restric the variable ' + key)
+
+    def sum_out(self, key):
+        if key in self.keys:
+            new_table = []
+
+            for entry in self.table:
+                found = False
+                found_entry = None
+                del entry[key]
+                for cmp_entry in new_table:
+                    inside_found = True
+                    for varaible in entry.keys():
+                        if varaible != 'probability' and entry[varaible] != cmp_entry[varaible]:
+                            inside_found = False
+                            break
+                    if inside_found:
+                        found = True
+                        found_entry = cmp_entry
+                        break
+
+                if found:
+                    found_entry['probability'] = found_entry['probability'] + entry['probability']
+                else:
+                    new_table.append(entry)
+
+            self.keys.remove(key)
+            self.table = new_table
+        else:
+            print('Can not sum out the variable ' + key)
 
 
 class BayesianNetwork(object):
@@ -12,9 +62,49 @@ class BayesianNetwork(object):
         self.queries = queries
         self.answer = []
 
+        self.all_variables = []
+        self.factors = []
+
     def construct(self):
-        # TODO: Your code here to construct the Bayesian network
-        pass
+        for key in self.variables:
+            self.all_variables.append(key)
+
+        for key, value in self.variables.items():
+            continue
+
+        for key in self.conditional_probabilities:
+            new_factor = Factor()
+            for element in self.conditional_probabilities[key]:
+                # probability = element['probability']
+                element[key] = element['own_value']
+                del element['own_value']
+                new_factor.table.append(element)
+
+            for inner_key in self.conditional_probabilities[key][0]:
+                if inner_key != 'probability':
+                    new_factor.keys.append(inner_key)
+
+            self.factors.append(new_factor)
+
+        for key in self.prior_probabilities:
+            new_factor = Factor()
+            new_factor.keys.append(key)
+            for value in self.prior_probabilities[key]:
+                # probability = element['probability']
+                new_dict = {}
+                new_dict[key] = value
+                new_dict['probability'] = self.prior_probabilities[key][value]
+
+                new_factor.table.append(new_dict)
+
+            self.factors.append(new_factor)
+
+        # for factor in self.factors:
+        factor = self.factors[0]
+        print(factor.table)
+        factor.sum_out('Alarm')
+        print(factor.table)
+        print(factor.keys)
 
     def infer(self):
         # TODO: Your code here to answer the queries given using the Bayesian
@@ -23,8 +113,10 @@ class BayesianNetwork(object):
         # for the given example:
         # self.answer = [{"index": 1, "answer": 0.01}, {"index": 2, "answer": 0.71}]
         # the format of the answer returned SHOULD be as shown above.
-        print (self.conditional_probabilities)
-        print (self.prior_probabilities)
+
+
+        # print (self.conditional_probabilities)
+        # print (self.prior_probabilities)
 
         return self.answer
 
