@@ -56,8 +56,9 @@ class Factor:
         for entry in self.table:
             prob_sum += entry['probability']
 
-        for entry in self.table:
-            entry['probability'] /= prob_sum
+        if prob_sum != 0:
+            for entry in self.table:
+                entry['probability'] /= prob_sum
 
     @classmethod
     def multiply(cls, factor1, factor2):
