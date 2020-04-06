@@ -1,0 +1,17 @@
+[
+    {
+        "index" : 1,
+        "given" : {"Alarm":  "True"},
+        "tofind" : {"Burglary": "True", "Earthquake": "True"}
+    },
+    {
+        "index" : 2,
+        "given" : { "Alarm":  "True"},
+        "tofind" : {"Burglary": "True"}
+    },
+    {
+        "index" : 3,
+        "given" : { "Alarm":  "True"},
+        "tofind" : {"Earthquake": "True"}
+    }
+]

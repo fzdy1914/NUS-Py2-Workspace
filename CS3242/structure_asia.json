@@ -1,0 +1,1 @@
+{"variables": {"either": ["yes", "no"], "smoke": ["yes", "no"], "lung": ["yes", "no"], "dysp": ["yes", "no"], "bronc": ["yes", "no"], "asia": ["yes", "no"], "tub": ["yes", "no"], "xray": ["yes", "no"]}, "dependencies": {"either": ["lung", "tub"], "xray": ["either"], "lung": ["smoke"], "dysp": ["bronc", "either"], "bronc": ["smoke"], "tub": ["asia"]}}
